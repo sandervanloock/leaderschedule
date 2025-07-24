@@ -38,6 +38,7 @@
     <module>java/tournament-scheduling</module>
     <module>java/spring-boot-integration</module>
     <module>kotlin/school-timetabling</module>
+      <module>leader-schedule</module>
   </modules>
 
 </project>
