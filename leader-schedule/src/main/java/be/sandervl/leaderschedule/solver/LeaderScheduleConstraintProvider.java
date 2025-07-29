@@ -68,6 +68,13 @@ public class LeaderScheduleConstraintProvider implements ConstraintProvider {
                 .asConstraint("At least 1 year experience");
     }
 
+    protected Constraint noAspiForAspi(ConstraintFactory constraintFactory) {
+        return constraintFactory.forEach(Group.class)
+                .filter(group -> group.getName().equals("Aspiranten") && group.getLeaders().stream().anyMatch(l -> l.getExperience() == 0))
+                .penalize(BendableScore.ofHard(BENDABLE_SCORE_HARD_LEVELS_SIZE, BENDABLE_SCORE_SOFT_LEVELS_SIZE, 0, 1))
+                .asConstraint("Aspi for aspi");
+    }
+
 //    protected Constraint larsHasSpeelclub(ConstraintFactory constraintFactory) {
 //        return constraintFactory.forEach(Leader.class)
 //                .filter(leader -> leader.getFullName().equals("Lars") && !leader.getGroup().getName().equals("Speelclub"))

@@ -64,6 +64,11 @@
             <artifactId>commons-text</artifactId>
             <version>${version.org.apache.commons.text}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.10.0</version>
+        </dependency>
 
         <!-- Testing -->
         <dependency>

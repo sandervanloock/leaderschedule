@@ -11,6 +11,7 @@ import org.apache.commons.csv.CSVRecord;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,14 +26,15 @@ public class DemoDataGenerator {
         List<Leader> leaders = loadLeadersFromCsv();
 
         var groups = List.of(
-                new Group("Speelclub", 3, 4),
+                new Group("Speelclub", 2, 4),
                 new Group("Rakkers", 2, 3),
-                new Group("Toppers", 2, 3),
-                new Group("Kerels", 2, 2),
-                new Group("Aspiranten", 2, 2)
+                new Group("Toppers", 2, 2),
+                new Group("Kerels", 1, 2),
+                new Group("Aspiranten", 1, 2)
         );
 
         // Update the plan
+        Collections.shuffle(leaders);
         plan.setLeaders(leaders);
         plan.setGroups(groups);
         return plan;
@@ -71,7 +73,7 @@ public class DemoDataGenerator {
                 String thirdChoice = record.get("Mijn derde keuze van groep");
 
                 // Create leader with default experience level (can be adjusted)
-                Leader leader = new Leader(name, 1);
+                Leader leader = new Leader(name, record.get("experience") != null ? Integer.parseInt(record.get("experience")) : 0);
 
                 // Build affinity map based on preferences
                 Map<String, Affinity> affinityMap = new HashMap<>();
@@ -79,21 +81,21 @@ public class DemoDataGenerator {
                 if (firstChoice != null && !firstChoice.trim().isEmpty()) {
                     affinityMap.put(firstChoice.trim(), Affinity.HIGH);
                 }
-                if (secondChoice != null && !secondChoice.trim().isEmpty()) {
+                if (secondChoice != null && !secondChoice.trim().isEmpty() && !affinityMap.containsKey(secondChoice)) {
                     affinityMap.put(secondChoice.trim(), Affinity.MEDIUM);
                 }
-                if (thirdChoice != null && !thirdChoice.trim().isEmpty()) {
+                if (thirdChoice != null && !thirdChoice.trim().isEmpty() && !affinityMap.containsKey(thirdChoice)) {
                     affinityMap.put(thirdChoice.trim(), Affinity.LOW);
                 }
 
                 leader.setGroupAffinityMap(affinityMap);
                 leaders.add(leader);
-                leaderMap.put(name, leader);
+                leaderMap.put(name.trim(), leader);
 
                 // Collect preference data for later processing
                 String wantsToWorkWith = record.get("Is er een leider waar je graag mee in leiding zou staan?");
                 if ("Ja".equalsIgnoreCase(wantsToWorkWith)) {
-                    String preferredLeaderNames = record.get("Indien het antwoord op vorige vraag 'Ja' was, wie");
+                    String preferredLeaderNames = record.get(7);
                     if (preferredLeaderNames != null && !preferredLeaderNames.trim().isEmpty()) {
                         preferredLeaderData.put(name, preferredLeaderNames);
                     }
@@ -101,7 +103,7 @@ public class DemoDataGenerator {
 
                 String doesntWantToWorkWith = record.get("Is er een leider waar je niet graag mee in leiding zou staan?");
                 if ("Ja".equalsIgnoreCase(doesntWantToWorkWith)) {
-                    String unwantedLeaderNames = record.get("Indien het antwoord op vorige vraag 'Ja' was, wie");
+                    String unwantedLeaderNames = record.get(9);
                     if (unwantedLeaderNames != null && !unwantedLeaderNames.trim().isEmpty()) {
                         unwantedLeaderData.put(name, unwantedLeaderNames);
                     }
@@ -163,7 +165,40 @@ public class DemoDataGenerator {
             }
         }
 
+        // Log if not all names could be matched to a Leader
+        if (leaders.size() < names.length) {
+            System.out.println("[parseLeaderNames] Mismatch: requested names='" + leaderNames + "', splitCount=" + names.length + ", matchedLeaders=" + leaders.size() + ", unmatchedNames=" + getUnmatchedNames(names, leaders, leaderMap) + ", leaderMapKeys=" + leaderMap.keySet());
+        }
+
         return leaders;
+    }
+
+    // Helper to get unmatched names for logging
+    private List<String> getUnmatchedNames(String[] names, Set<Leader> matchedLeaders, Map<String, Leader> leaderMap) {
+        List<String> unmatched = new ArrayList<>();
+        Set<String> matchedNames = new HashSet<>();
+        for (Leader l : matchedLeaders) {
+            matchedNames.add(l.getFullName());
+        }
+        for (String name : names) {
+            String trimmedName = name.trim();
+            if (!trimmedName.isEmpty()) {
+                boolean found = matchedNames.contains(trimmedName);
+                if (!found) {
+                    boolean ciFound = false;
+                    for (String key : leaderMap.keySet()) {
+                        if (key.equalsIgnoreCase(trimmedName)) {
+                            ciFound = true;
+                            break;
+                        }
+                    }
+                    if (!ciFound) {
+                        unmatched.add(trimmedName);
+                    }
+                }
+            }
+        }
+        return unmatched;
     }
 
     private List<Leader> createFallbackLeaders() {
